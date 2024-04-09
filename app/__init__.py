@@ -1,0 +1,38 @@
+
+from flask import Flask
+from extensions import db, migrate, jwt
+from app.controllers.auth.auth_controller import auth
+from app.controllers.auth.companies_controller import company
+from app.controllers.auth.book_controller import books
+import datetime
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object('config.config')
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
+    
+    # Importing and registering models
+    from app.models.users import User
+    from app.models.companies import Company
+    from app.models.books import Book
+    
+    # Register Blueprints
+    app.register_blueprint(auth)
+    app.register_blueprint(company)
+    app.register_blueprint(books)
+    
+    
+    
+    @app.route('/')
+    def home():
+        return "AuthorS API Project Setup"
+    
+    return app
+
+
+
+
+ 
