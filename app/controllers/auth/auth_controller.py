@@ -94,7 +94,6 @@ def login():
     #Get all users
 @auth.route('/users/', methods=('POST',))  # Use methods as a tuple
 def get_all_users():
-    # ... rest of your code ...
 
     users = User.query.all()
     output = []

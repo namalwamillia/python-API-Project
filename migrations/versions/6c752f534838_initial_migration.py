@@ -1,8 +1,8 @@
-"""Migrating users,companies,books
+"""Initial migration.
 
-Revision ID: c5b2f1527252
+Revision ID: 6c752f534838
 Revises: 
-Create Date: 2024-03-27 12:11:47.615034
+Create Date: 2024-04-11 12:51:50.563044
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c5b2f1527252'
+revision = '6c752f534838'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,12 +36,12 @@ def upgrade():
     )
     op.create_table('companies',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=100), nullable=True),
+    sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('origin', sa.String(length=100), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('user_type', sa.DateTime(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('user_type', sa.String(length=100), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
@@ -50,22 +50,21 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=150), nullable=False),
     sa.Column('pages', sa.Integer(), nullable=False),
-    sa.Column('price', sa.Integer(), nullable=False),
+    sa.Column('price', sa.Float(), nullable=False),
     sa.Column('price_unit', sa.String(length=50), nullable=False),
     sa.Column('publication_date', sa.Date(), nullable=False),
     sa.Column('isbn', sa.String(length=30), nullable=False),
     sa.Column('genre', sa.String(length=50), nullable=False),
     sa.Column('description', sa.String(length=255), nullable=False),
     sa.Column('image', sa.String(length=255), nullable=True),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('company_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('company_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('isbn'),
-    sa.UniqueConstraint('price')
+    sa.UniqueConstraint('isbn')
     )
     # ### end Alembic commands ###
 
