@@ -4,6 +4,8 @@ from app.controllers.auth.auth_controller import auth
 from app.controllers.auth.companies_controller import company
 from app.controllers.auth.book_controller import books
 import datetime
+from flask_swagger_ui import get_swaggerui_blueprint
+# from app.controllers.auth.revoked_tokencontroller import revoked_token
 
 def create_app():
     from flask import Flask
@@ -21,11 +23,13 @@ def create_app():
     from app.models.users import User
     from app.models.companies import Company
     from app.models.books import Book
+    
 
     # Register Blueprints
     app.register_blueprint(auth)
     app.register_blueprint(company)
     app.register_blueprint(books)
+    # app.register_blueprint(revoked_token) 
 
     @app.route('/')
     def home():

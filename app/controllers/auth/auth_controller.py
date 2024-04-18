@@ -71,11 +71,14 @@ def login():
         password = request.json.get('password')
 
         if not email or not password:
-            return jsonify({'error': 'Missing email or password'}), 400  # Use status code directly
+            return jsonify({'error': 'Missing email or password'}), 400
 
         user = User.query.filter_by(email=email).first()
-        if not user or not bcrypt.check_password_hash(user.password, password):
-            return jsonify({'error': 'Invalid email or password'}), 401  # Use status code directly
+        if not user:
+            return jsonify({'error': 'User not found'}), 401
+
+        if not bcrypt.check_password_hash(user.password, password):
+            return jsonify({'error': 'Invalid password'}), 401
 
         access_token = create_access_token(identity=user.id)
         return jsonify({
@@ -84,12 +87,14 @@ def login():
                 'username': user.get_full_name(),
                 'email': user.email,
                 'access_token': access_token,
-                'type':user.user_type
+                'type': user.user_type
             },
             'message': 'You have successfully logged into your account'
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log the exception for debugging
+        logging.error(f"An error occurred during login: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
     #Get all users
 @auth.route('/users/', methods=('POST',))  # Use methods as a tuple
@@ -107,7 +112,8 @@ def get_all_users():
             'user_type': user.user_type,
             'biography': user.biography,
             'image':user.image,
-            'created_at':user.created_at
+            'created_at':user.created_at,
+            'password':user.password
         }
         output.append(user_data)
     return jsonify({'users': output})
@@ -117,7 +123,7 @@ def get_all_users():
 def get_user(id):
     user = User.query.get_or_404(id)
     user_data = {
-      'id': user.id,
+            'id': user.id,
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
@@ -125,7 +131,9 @@ def get_user(id):
             'user_type': user.user_type,
             'biography': user.biography,
             'image':user.image,
-            'created_at':user.created_at
+            'created_at':user.created_at,
+            'password':user.password
+            
     }
     return jsonify(user_data)
 

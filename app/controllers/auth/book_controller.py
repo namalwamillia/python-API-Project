@@ -1,78 +1,77 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, get_jwt_identity
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from sqlalchemy.exc import IntegrityError
 from app import db
 from datetime import datetime
 from app.models.books import Book
-from app.models.companies import Company  # Assuming Company is imported
-from flask_jwt_extended import jwt_required
-from traceback import print_exc
-
-from collections.abc import Mapping  # Import Mapping explicitly
-
-
+from app.models.companies import Company
+import logging  # Import for error logging
 
 # Define Blueprint
 books = Blueprint('books', __name__, url_prefix='/api/v1/books')
 
-#create a book
-@books.route('/', methods=['POST'])
+
+@books.route('/register', methods=['POST'])
+@jwt_required()
 def create_book():
     try:
-        # Extract data from request
         data = request.get_json()
 
-        # Basic input validation
-        required_fields = ['title', 'pages', 'price', 'price_unit', 'publication_date',
-                           'isbn', 'genre', 'description', 'company_id', 'user_id']
+        required_fields = ['title', 'pages', 'price', 'price_unit',
+                           'publication_date', 'isbn', 'genre', 'description',
+                           'company_id', 'user_id']
+
+        # Check for missing required fields
         if not all(field in data for field in required_fields):
-            return jsonify({"error": "All required fields are missing"}), 400
+            return jsonify({"error": "All required fields are missing"}), 422
 
-        # Validate company ID
-        company = Company.query.get(data['company_id'])
-        if not company:
-            error_message = "Invalid company ID"
-            raise Exception(error_message)
+        # Extract data from request
+        title = data['title']
+        pages = data['pages']
+        price = data['price']
+        price_unit = data['price_unit']
+        publication_date = datetime.strptime(data['publication_date'], '%Y-%m-%d').date()
+        isbn = data['isbn']
+        genre = data['genre']
+        description = data['description']
+        image = data.get('image')  # Optional image field
+        company_id = data['company_id']
+        user_id = data['user_id']
 
-        # Validate publication date format
-        try:
-            publication_date = datetime.strptime(data['publication_date'], '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({"error": "Invalid publication date format (YYYY-MM-DD)"}), 400
+        # Create a new book instance
+        new_book = Book(title=title, pages=pages, price=price, price_unit=price_unit,
+                        publication_date=publication_date, isbn=isbn, genre=genre,
+                        description=description, image=image, company_id=company_id,
+                        user_id=user_id)
 
-        # Create a new book
-        new_book = Book(
-            title=data['title'],
-            pages=data['pages'],
-            price=data['price'],
-            price_unit=data['price_unit'],
-            publication_date=publication_date,
-            isbn=data['isbn'],
-            genre=data['genre'],
-            description=data['description'],
-            image=data.get('image'),  # Handle optional image
-            company_id=data['company_id'],
-            user_id=data['user_id']
-        )
-
-        # Add and commit to database
+        # Add the book to the database session
         db.session.add(new_book)
+
+        # Commit changes to the database
         db.session.commit()
 
-        # Build response message
-        return jsonify({"message": f"Book '{new_book.title}' has been created"}), 201
+        # Return success message with the book ID
+        return jsonify({"message": f"Book '{new_book.title}' has been created",
+                       "book_id": new_book.id}), 201
 
     except IntegrityError as e:
-        print(f"Database integrity error: {str(e)}")
-        return jsonify({"error": "An error occurred during book creation. Please check the provided data."}), 400
+        # Log the error for debugging
+        logging.error(f"Database integrity error: {str(e)}")
+        # Return specific error message based on constraint violation
+        return jsonify({"error": f"An error occurred creating the book: {e.constraint}"}), 400
 
-    except ValueError as e:  # Catch potential value parsing errors
-        print(f"Value parsing error: {str(e)}")
-        return jsonify({"error": "Invalid data format. Please refer to the API documentation."}), 400
+    except ValueError as e:
+        # Log the error for debugging
+        logging.error(f"Value parsing error: {str(e)}")
+        # Return error message for invalid data format
+        return jsonify({"error": f"Invalid data format: {str(e)}"}), 400
 
-    except Exception as e:  # Fallback for unexpected errors
-        print(f"An unexpected error occurred: {str(e)}")
+    except Exception as e:
+        # Log the error for debugging
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        # Return generic error message (improve later for better user feedback)
         return jsonify({"error": "Internal server error"}), 500
+
 
     
 # Search Books (GET) with Access Token
@@ -194,21 +193,20 @@ def get_book(book_id):
 
         # Build response data with basic book information
         book_data = {
-    "id": book.id,
-    "title": book.title,
-    # "author": book.author,  # Remove this line if author is not relevant
-    "genre": book.genre,
-    "description": book.description,
-    "publication_date": book.publication_date.strftime("%Y-%m-%d"),
-    "image": book.image,
-}
-
+            "id": book.id,
+            "title": book.title,
+            # "author": book.author,  # Optional: Remove if author is not relevant
+            "genre": book.genre,
+            "description": book.description,
+            "publication_date": book.publication_date.strftime("%Y-%m-%d"),
+            "image": book.image,
+        }
 
         # Return book data
         return jsonify(book_data), 200
 
     except Exception as e:
+        # Log the error for better debugging (use a logging library)
         print(f"An error occurred: {str(e)}")
-        traceback.print_exc()  # Print the full traceback for debugging
-    return jsonify({"error": "Internal server error"}), 500
-
+        # Consider providing more specific error messages based on the exception type
+        return jsonify({"error": "Internal server error"}), 500
