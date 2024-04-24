@@ -11,6 +11,13 @@ from app.status_codes import (
 )
 from email_validator import validate_email, EmailNotValidError
 from flask_jwt_extended import create_access_token
+import logging
+from flask_jwt_extended import create_refresh_token
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity
+
+
+
 
 auth = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -64,6 +71,40 @@ def register_users():
 
 #logging in users
 
+# @auth.route('/login', methods=['POST'])
+# def login():
+#     try:
+#         email = request.json.get('email')
+#         password = request.json.get('password')
+
+#         if not email or not password:
+#             return jsonify({'error': 'Missing email or password'}), 400
+
+#         user = User.query.filter_by(email=email).first()
+#         if not user:
+#             return jsonify({'error': 'User not found'}), 401
+
+#         if not bcrypt.check_password_hash(user.password, password):
+#             return jsonify({'error': 'Invalid password'}), 401
+
+#         access_token = create_access_token(identity=user.id)
+#         return jsonify({
+#             'user': {
+#                 'id': user.id,
+#                 'username': user.get_full_name(),
+#                 'email': user.email,
+#                 'access_token': access_token,
+#                 'type': user.user_type
+#             },
+#             'message': 'You have successfully logged into your account'
+#         }), 200
+#     except Exception as e:
+#         # Log the exception for debugging
+#         logging.error(f"An error occurred during login: {str(e)}")
+#         return jsonify({'error': 'Internal server error'}), 500
+
+
+# Logging in users
 @auth.route('/login', methods=['POST'])
 def login():
     try:
@@ -80,21 +121,39 @@ def login():
         if not bcrypt.check_password_hash(user.password, password):
             return jsonify({'error': 'Invalid password'}), 401
 
+        # Generate access token and refresh token
         access_token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
+
         return jsonify({
             'user': {
                 'id': user.id,
                 'username': user.get_full_name(),
                 'email': user.email,
                 'access_token': access_token,
+                'refresh_token': refresh_token,  # Add refresh token to response
                 'type': user.user_type
             },
             'message': 'You have successfully logged into your account'
         }), 200
     except Exception as e:
-        # Log the exception for debugging
         logging.error(f"An error occurred during login: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+    
+    #Get refresh_token
+
+@auth.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)  # Require a refresh token for this route
+def refresh():
+    current_user = get_jwt_identity()  # Get the user id from the refresh token
+    new_access_token = create_access_token(identity=current_user)  # Create a new access token
+
+    return jsonify({
+        'access_token': new_access_token
+    }), 200
+
+
+
 
     #Get all users
 @auth.route('/users/', methods=('POST',))  # Use methods as a tuple
