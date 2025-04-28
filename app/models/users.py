@@ -1,31 +1,43 @@
+import re
+from sqlalchemy.orm import validates
 from extensions import db
 from datetime import datetime
 
 class User(db.Model):
     __tablename__ = "users"
+    
     id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False, unique=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
-    contact = db.Column(db.String(50), nullable=False, unique=True)
-    image = db.Column(db.String(255), nullable=True)
     password = db.Column(db.String(255), nullable=False)
-    biography = db.Column(db.Text, nullable=True)
-    user_type = db.Column(db.String(20), default='authors')
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, onupdate=datetime.now())
+    role = db.Column(db.String(50), nullable=False, default='customer')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    successful_orders = db.Column(db.Integer, default=0)
+    cancelled_orders = db.Column(db.Integer, default=0)
 
-    def __init__(self, first_name, last_name, email, contact, password, biography=None, user_type='authors', image=None):
-        self.first_name = first_name
-        self.last_name = last_name
+    def __init__(self, name, phone_number, email, password, role='customer'):
+        self.name = name
+        self.phone_number = phone_number
         self.email = email
-        self.contact = contact
         self.password = password
-        self.biography = biography
-        self.user_type = user_type
-        self.image = image
+        self.role = role
 
-    def get_full_name(self):
-        return f"{self.last_name} {self.first_name}"
+    @validates('phone_number')
+    def validate_phone_number(self, key, phone_number):
+        if not phone_number:
+            raise ValueError("Phone number is required")
         
+        # Remove any non-digit characters
+        cleaned_number = re.sub(r'[^\d]', '', phone_number)
         
+        # Validate length (must be exactly 10 digits)
+        if len(cleaned_number) != 10:
+            raise ValueError("Phone number must be exactly 10 digits")
+        
+        # Check if it's all digits
+        if not cleaned_number.isdigit():
+            raise ValueError("Phone number must contain only numbers")
+        
+        return cleaned_number

@@ -1,6 +1,6 @@
-class config:
-   SQLALCHEMY_DATABASE_URI='mysql+pymysql://root:@localhost/api'
-   JWT_SECRET_KEY='AUTHORS API REDO'
+class Config:
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:@localhost/flask_db'
+    JWT_SECRET_KEY = 'Kok API'
 
 
 

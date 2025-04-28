@@ -1,49 +1,57 @@
-from flask import Flask
+from flask import Flask, jsonify
+from flask_cors import CORS  # type: ignore
 from extensions import db, migrate, jwt
-from app.controllers.auth.auth_controller import auth
-from app.controllers.auth.companies_controller import company
-from app.controllers.auth.book_controller import books
-import datetime
-from flask_swagger_ui import get_swaggerui_blueprint
-# from app.controllers.auth.revoked_tokencontroller import revoked_token
+from app.controllers.auth.user_controller import user_bp
+from app.controllers.auth.product_controller import product_bp
+from app.controllers.auth.order_controller import order_bp
+# from app.controllers.auth.inventory_management_controller import inventory_management_bp
+# from app.controllers.auth.stock_change_controller import stock_change_bp
 
 def create_app():
-    from flask import Flask
-
     app = Flask(__name__)
-    app.config['JSON_AS_ASCII'] = False  # Allow non-ASCII characters in JSON responses
+    app.config['JSON_AS_ASCII'] = False
+    app.config.from_object('config.Config')  # Ensure config.Config is set up with DB and JWT settings
 
-    app.config.from_object('config.config')
-
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    CORS(app)  # Enable CORS for frontend requests
 
-    # Importing and registering models
+    # Import models
     from app.models.users import User
-    from app.models.companies import Company
-    from app.models.books import Book
-    
+    from app.models.address_books import AddressBook
+    from app.models.products import Product
+    from app.models.orders import Order
+    # from app.models.inventory_management import InventoryManagement
+    # from app.models.stock_changes import StockChange
+    from app.models.messages import Message
 
     # Register Blueprints
-    app.register_blueprint(auth)
-    app.register_blueprint(company)
-    app.register_blueprint(books)
-    # app.register_blueprint(revoked_token) 
+    app.register_blueprint(user_bp, url_prefix='/api/users')
+    app.register_blueprint(product_bp, url_prefix='/api/products')
+    app.register_blueprint(order_bp, url_prefix='/api/orders')
+    # app.register_blueprint(inventory_management_bp, url_prefix='/api/inventory-management')
+    # app.register_blueprint(stock_change_bp, url_prefix='/api/stock-changes')
 
     @app.route('/')
     def home():
-        return "AuthorS API Project Setup"  # Corrected indentation
+        return "KOK API Project Setup Successfully!"
+
+    # Debug route to list all endpoints
+    @app.route('/debug/routes')
+    def list_routes():
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': list(rule.methods),
+                'url': str(rule)
+            })
+        return jsonify(routes)
 
     return app
 
-# Assuming you call create_app() to get the Flask application instance
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
-
-
-
-
-
- 
+    app.run(debug=True, port=5000)
